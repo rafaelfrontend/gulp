@@ -1,17 +1,18 @@
-var gulp       = require('gulp');
-var sass       = require('gulp-sass');
-var gutil      = require('gulp-util');
-var uglify     = require('gulp-uglify');
-var concat     = require('gulp-concat');
-var watch      = require('gulp-watch');
-var ftp        = require('vinyl-ftp');
-var compass    = require('gulp-compass');
-var newer      = require('gulp-newer');
-var bower      = require('gulp-bower');
-var inject     = require('gulp-inject');
-var bowerFiles = require('main-bower-files');
-var replace    = require('gulp-replace');
-var clean      = require('gulp-clean');
+var gulp        = require('gulp');
+var sass        = require('gulp-sass');
+var gutil       = require('gulp-util');
+var uglify      = require('gulp-uglify');
+var concat      = require('gulp-concat');
+var watch       = require('gulp-watch');
+var ftp         = require('vinyl-ftp');
+var compass     = require('gulp-compass');
+var newer       = require('gulp-newer');
+var bower       = require('gulp-bower');
+var inject      = require('gulp-inject');
+var bowerFiles  = require('main-bower-files');
+var replace     = require('gulp-replace');
+var clean       = require('gulp-clean');
+var processhtml = require('gulp-processhtml')
 
 
 var base = {
@@ -66,6 +67,13 @@ gulp.task('clean', function () {
     .pipe(clean());
 });
 
+
+gulp.task('processhtml', function () {
+    return gulp.src(base.app + 'index.php')
+               .pipe(processhtml())
+               .pipe(gulp.dest(base.build));
+});
+
 // Inserir no html os caminho dos arquivos do js e bower_components
 gulp.task('inject', function () {
     var target  = gulp.src(base.app + path.html);
@@ -76,7 +84,7 @@ gulp.task('inject', function () {
     .pipe(gulp.dest(base.app));
 });
 
-// Compassa
+// Compass
 gulp.task('compass', function() {
     gulp.src(base.app + path.scss)
     .pipe(compass({
@@ -133,7 +141,7 @@ gulp.task(
         'compass',
         // 'js',
         'inject',
-        'size'
+        'processhtml'
     ]
 );
 
