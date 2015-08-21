@@ -10,76 +10,141 @@ var newer      = require('gulp-newer');
 var bower      = require('gulp-bower');
 var inject     = require('gulp-inject');
 var bowerFiles = require('main-bower-files');
+var replace    = require('gulp-replace');
+var clean      = require('gulp-clean');
 
-var config = {
-    app: 'app',
-    build: 'build',
+
+var base = {
+    app: 'app/',
+    build: 'build/',
+    dist: 'dist/'
 };
 
+var path = {
+    js     : ['js/**/*.js'],
+    vendor : ['js/vendor/**/*.js'],
+    scss   : ['scss/**/*.scss'],
+    styles : ['styles/**/*.css'],
+    images : ['images/**/*.png'],
+    html   : ['index.php']
+};
+
+// FLAG
+var dirClean;
+var dirInject;
+var dirCompass;
+gulp.task('processApp', function() {
+    dirClean   = '.tmp/*';
+    dirInject  = '<TAGPHPphp echo $app TAGPHP>';
+    dirCompass = {
+        css      : '.tmp/styles',
+        file     : base.app,
+        comments : true,
+        style    : 'expanded'
+    }
+
+});
+gulp.task('processBuild', function() {
+    dirClean   = base.build + '*';
+    dirInject  = '<TAGPHPphp echo $build TAGPHP>/..';
+    dirCompass = {
+        css      : base.build + 'css',
+        file     : base.build,
+        comments : false,
+        style    : 'compressed'
+    }
+});
+
+// Instalação do Bower
 gulp.task('bower', function() {
     return bower();
 });
 
-gulp.task('inject', function () {
-    var target  = gulp.src(config.app+'/index.php');
-    var sources = gulp.src([config.app+'/js/**/*.js'], {read: false});
-    target.pipe(inject(sources))
-    .pipe(inject(gulp.src(bowerFiles(), {read: false}), {name: 'bower'}))
-    .pipe(gulp.dest(config.app));
+// Limpar os arquivos dos diretórios
+gulp.task('clean', function () {
+    return gulp.src(dirClean, {read: false})
+    .pipe(clean());
 });
 
+// Inserir no html os caminho dos arquivos do js e bower_components
+gulp.task('inject', function () {
+    var target  = gulp.src(base.app + path.html);
+    var sources = gulp.src([base.app + path.js], {read: false});
+    target.pipe(inject(sources,{addRootSlash: false, addPrefix: dirInject}))
+    .pipe(inject(gulp.src(bowerFiles(), {read: false}), {name: 'bower', addRootSlash: false, addPrefix: dirInject}))
+    .pipe(replace('TAGPHP','?'))
+    .pipe(gulp.dest(base.app));
+});
+
+// Compassa
 gulp.task('compass', function() {
-    gulp.src(config.app+'/scss/**/*.scss')
-    .pipe(newer(config.app+'/scss/**/*.scss'))
+    gulp.src(base.app + path.scss)
     .pipe(compass({
-        css      : '.tmp/styles',
-        sass     : config.app+'/scss',
-        images   : config.app+'/images',
-        font     : config.app+'/fonts',
-        comments : true
-    }));
+        css      : dirCompass.css,
+        sass     : base.app + 'scss',
+        images   : dirCompass.file + 'images',
+        font     : dirCompass.file + 'fonts',
+        comments : dirCompass.comments,
+        style    : dirCompass.style
+    }))
 });
 
 gulp.task('js', function() {
-    gulp
-    .src([config.app+'/js/**/*.js'])
-    .pipe(newer(config.app+'/js/**/*.js'))
-    // .pipe(concat('script.js'))
-    .pipe(gulp.dest(config.app+'/js'));
+    return gulp.src(['./lib/file3.js', './lib/file1.js', './lib/file2.js'])
+    .pipe(concat('all.js'))
+    .pipe(gulp.dest(base.build));
 });
 
 gulp.task('copy', function() {
-    gulp.src(config.app+'/*.{php,html}')
-    .pipe(gulp.dest(config.build));
+    gulp.src([
+        '*.{ico,png,jpg,gif}',
+        '.htaccess',
+        'img/{,**/}*.webp',
+        '{,**/}*.{html,php}',
+        'fonts/{,*/}*.*'
+    ])
+    .pipe(gulp.dest(base.build));
 });
-
 
 gulp.task('watch', function () {
-    gulp.watch(config.app+'/*.{php,html}',['copy']);
-    gulp.watch([config.app+'/scss/**/*.scss',config.app+'/js/vendor/**/*.js'],['compass']);
+    gulp.watch([base.app + '**', '!' + base.app + path.scss], ['copy','inject']);
+    gulp.watch(['bower.json', base.app + 'scripts/{,**/}*.js'], ['inject']);
+    gulp.watch([base.app + 'scss/{,*/}*.{scss,sass}'], ['compass']);
 });
 
-
-
+// process.env.NODE_ENV = 'dev';
 
 gulp.task(
     'app',
     [
+        'processApp',
+        'clean',
         'bower',
         'compass',
-        'js',
         'inject',
         'watch'
     ]
 );
+gulp.task(
+    'build',
+    [
+        'processBuild',
+        'clean',
+        'compass',
+        // 'js',
+        'inject',
+        'size'
+    ]
+);
 
-gulp.task('build', function() {
-    gulp
-    .src(['src/js/**/*.js','src/js/vendor/**/*.js'])
-    .pipe(concat('all.min.js'))
-    .pipe(uglify())
-    .pipe(gulp.dest('build/js'));
-});
+// gulp.task('build', function() {
+//     gulp
+//     .src([path.js, path.vendor])
+//     .pipe(concat('all.min.js'))
+//     .pipe(uglify())
+//     .pipe(gulp.dest('build/js'));
+// });
+
 
 gulp.task( 'deploy', function() {
     var conn = ftp.create( {
