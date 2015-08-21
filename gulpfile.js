@@ -77,7 +77,7 @@ gulp.task('processhtml', function () {
 // Inserir no html os caminho dos arquivos do js e bower_components
 gulp.task('inject', function () {
     var target  = gulp.src(base.app + path.html);
-    var sources = gulp.src([base.app + path.js], {read: false});
+    var sources = gulp.src([base.app + path.vendor, base.app + path.js], {read: false});
     target.pipe(inject(sources,{addRootSlash: false, addPrefix: dirInject}))
     .pipe(inject(gulp.src(bowerFiles(), {read: false}), {name: 'bower', addRootSlash: false, addPrefix: dirInject}))
     .pipe(replace('TAGPHP','?'))
@@ -116,7 +116,7 @@ gulp.task('copy', function() {
 
 gulp.task('watch', function () {
     gulp.watch([base.app + '**', '!' + base.app + path.scss], ['copy','inject']);
-    gulp.watch(['bower.json', base.app + 'scripts/{,**/}*.js'], ['inject']);
+    gulp.watch(['bower.json', base.app + 'scripts/**/*.js'], ['inject']);
     gulp.watch([base.app + 'scss/{,*/}*.{scss,sass}'], ['compass']);
 });
 
@@ -127,7 +127,6 @@ gulp.task(
     [
         'processApp',
         'clean',
-        'bower',
         'compass',
         'inject',
         'watch'
